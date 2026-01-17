@@ -185,28 +185,70 @@ const out = document.getElementById('out');
 const token = document.getElementById('token');
 const survey = document.getElementById('survey');
 
-document.getElementById('load').onclick = async () => {
+document.getElementById('load').onclick = async function () {
   out.textContent = 'Loading...';
+
   const r = await fetch('/surveymonkey/surveys', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ access_token: token.value })
   });
+
   const d = await r.json();
-  if(!r.ok){ out.textContent = JSON.stringify(d,null,2); return; }
-  survey.innerHTML = (d.surveys||[]).map(s => '<option value="'+s.id+'">'+(s.title||s.id)+'</option>').join('');
-  out.textContent = 'Loaded ' + (d.surveys||[]).length + ' surveys.';
+  if (!r.ok) {
+    out.textContent = JSON.stringify(d, null, 2);
+    return;
+  }
+
+  survey.innerHTML = '';
+  (d.surveys || []).forEach(function (s) {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.title || s.id;
+    survey.appendChild(opt);
+  });
+
+  out.textContent = 'Loaded ' + (d.surveys || []).length + ' surveys.';
 };
 
-document.getElementById('connect').onclick = async () => {
+document.getElementById('connect').onclick = async function () {
   out.textContent = 'Connecting...';
+
   const r = await fetch('/connect-surveymonkey', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ project_key: pk, access_token: token.value, survey_id: survey.value })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      project_key: pk,
+      access_token: token.value,
+      survey_id: survey.value
+    })
   });
+
   const d = await r.json();
-  out.textContent = JSON.stringify(d,null,2);
+  if (!r.ok) {
+    out.textContent = JSON.stringify(d, null, 2);
+    return;
+  }
+
+  out.innerHTML = '';
+
+  const msg = document.createElement('div');
+  msg.textContent = '✅ Setup complete. Paste this into your site:';
+  msg.style.marginBottom = '8px';
+
+  const pre = document.createElement('pre');
+  pre.textContent = d.embed_code;
+  pre.style.background = '#111';
+  pre.style.color = '#0f0';
+  pre.style.padding = '12px';
+  pre.style.borderRadius = '6px';
+  pre.style.overflow = 'auto';
+
+  out.appendChild(msg);
+  out.appendChild(pre);
 };
 </script>
+
 </body></html>`);
 });
 
@@ -249,7 +291,16 @@ app.post('/connect-surveymonkey', async (req, res) => {
       setup_complete: true
     });
 
-    return res.json({ ok: true, project_key: finalKey, survey_id });
+    const embedCode =
+      `<script src="https://invisinsights.tech/app.js" data-project-key="${finalKey}"></script>`;
+
+    return res.json({
+      ok: true,
+      project_key: finalKey,
+      survey_id,
+      embed_code: embedCode
+    });
+
   } catch (e) {
     return res.status(500).json({ error: 'connect_failed', detail: e.message });
   }
