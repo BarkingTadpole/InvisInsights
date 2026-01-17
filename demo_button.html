@@ -44,6 +44,118 @@
       width: 100%;
       text-align: center;
     }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .site-header .inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 80px;
+    }
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: flex-start;
+    }
+    .nav a {
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .nav a:hover {
+      text-decoration: underline;
+    }
+    .dropdown {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .dropdown-toggle {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      display: none;
+      min-width: 220px;
+      padding: 10px 0;
+      background: #ffffff;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      text-align: left;
+    }
+    .dropdown-menu a {
+      display: block;
+      padding: 8px 14px;
+      white-space: nowrap;
+    }
+    .dropdown:hover .dropdown-menu,
+    .dropdown:focus-within .dropdown-menu {
+      display: block;
+    }
+    .product-list {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .product-item {
+      margin: 24px auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .product-info {
+      flex: 1;
+      min-width: 240px;
+    }
+    .product-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .product-actions img {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+      border: none;
+      background: transparent;
+    }
+    .order-button {
+      background-color: #0071e3;
+      color: #ffffff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .order-button:hover {
+      background-color: #005bb5;
+    }
     .hero {
       background: #f7f7f7;
     }
@@ -117,6 +229,29 @@
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="inner">
+      <div class="logo">ButtonWorks</div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#about">About Us</a>
+        <div class="dropdown">
+          <button class="dropdown-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+            Products
+          </button>
+          <div class="dropdown-menu" role="menu">
+            <a href="#product-lever">The Lever v2.0</a>
+            <a href="#product-switch">The Switch Pro Max</a>
+            <a href="#product-dial">The Dial of Destiny</a>
+            <a href="#product-slider">The Slider: Ultimate Edition</a>
+          </div>
+        </div>
+        <a href="#mission">Our Mission</a>
+        <a href="#warranty">Lifetime Warranty</a>
+        <a href="#testimonials">Totally Real Reviews</a>
+        <a href="#lab">The Button™ Lab</a>
+      </nav>
+    </div>
+  </header>
   <!-- Hero Section -->
   <section class="section hero">
     <h1>The Button™</h1>
@@ -129,6 +264,34 @@
       it absolutely does not need to.
     </p>
     <img src="images/button.png" alt="The Button™">
+  </section>
+
+  <section class="section" id="about">
+    <h2>About Us</h2>
+    <p>
+      ButtonWorks is a serious organization that treats tiny, pressable surfaces
+      with the gravity usually reserved for aerospace guidance systems. We
+      don’t just build buttons; we over‑define the concept, add compliance
+      checklists, and then upholster it in titanium for good measure.
+    </p>
+    <p>
+      Our team consists of mechanical idealists, firmware absolutists, and one
+      accountant who keeps asking why the button needs its own thermal budget.
+      We respect the question while continuing to ignore it.
+    </p>
+  </section>
+
+  <section class="section" id="mission">
+    <h2>Our Mission</h2>
+    <p>
+      Our mission is to take the simplest interaction a human can perform and
+      turn it into a lifestyle decision. Each product must feel inevitable,
+      expensive, and slightly overqualified for its job.
+    </p>
+    <p>
+      We measure success in grams of unnecessary metal, pages of documentation,
+      and the number of times someone says, “this is impressive and also why.”
+    </p>
   </section>
 
   <!-- Engineering Beyond Reason -->
@@ -297,6 +460,29 @@
     </p>
   </section>
 
+  <section class="section" style="background-color:#f7f7f7;" id="warranty">
+    <h2>Lifetime Warranty*</h2>
+    <p>
+      *Lifetime defined as the operational half‑life of the universe or
+      whichever comes first. Batteries not included, time not guaranteed.
+    </p>
+  </section>
+
+  <section class="section" id="testimonials">
+    <h2>Totally Real Reviews</h2>
+    <p>"I pressed it once and felt my taxes simplify." — An Accountant (probably ours)</p>
+    <p>"Five stars. The button pressed me back." — Anonymous Engineer</p>
+    <p>"Finally, a button with more features than my car." — Concerned CEO</p>
+  </section>
+
+  <section class="section" style="background-color:#f7f7f7;" id="lab">
+    <h2>The Button™ Lab</h2>
+    <p>
+      Our R&amp;D team is currently developing a button that requires a key to
+      unlock the button that starts the button.
+    </p>
+  </section>
+
   <!-- Call to Action -->
   <section class="section" style="background-color:#f7f7f7;">
     <h2>Ready to Experience The Button™?</h2>
@@ -310,6 +496,57 @@
     <div class="cta">
       <button onclick="alert('Pre‑orders open soon! Stay tuned.')"> Pre-order - $676.76
         </button>
+    </div>
+  </section>
+
+  <!-- Other Products -->
+  <section class="section" id="products">
+    <h2>Other Overengineered Products</h2>
+    <p>
+      For those who asked, "but what if everything was a Button™?" we went
+      ahead and overbuilt a few more essentials. You are welcome.
+    </p>
+    <div class="product-list">
+      <div class="product-item" id="product-lever">
+        <div class="product-info">
+          <h3>The Lever™ v2.0</h3>
+          <p>Now with adaptive torque mapping and a pull‑to‑commit workflow.</p>
+        </div>
+        <div class="product-actions">
+          <img src="images/lever.png" alt="Product image placeholder">
+          <button class="order-button">Order Now - $684.37</button>
+        </div>
+      </div>
+      <div class="product-item" id="product-switch">
+        <div class="product-info">
+          <h3>The Switch™ Pro Max</h3>
+          <p>Triple‑redundant toggles that confirm your toggle with another toggle.</p>
+        </div>
+        <div class="product-actions">
+          <img src="images/switch.png" alt="Product image placeholder">
+          <button class="order-button">Order Now - $517.09</button>
+        </div>
+      </div>
+      <div class="product-item" id="product-dial">
+        <div class="product-info">
+          <h3>The Dial™ of Destiny</h3>
+          <p>Infinitely variable with 128 detents, each with its own warranty clause.</p>
+        </div>
+        <div class="product-actions">
+          <img src="images/dial.png" alt="Product image placeholder">
+          <button class="order-button">Order Now - $999.52</button>
+        </div>
+      </div>
+      <div class="product-item" id="product-slider">
+        <div class="product-info">
+          <h3>The Slider™: Ultimate Edition</h3>
+          <p>Glides on magnetics, stops on legal review, resumes on approval.</p>
+        </div>
+        <div class="product-actions">
+          <img src="images/slider.png" alt="Product image placeholder">
+          <button class="order-button">Order Now - $785.94</button>
+        </div>
+      </div>
     </div>
   </section>
 
