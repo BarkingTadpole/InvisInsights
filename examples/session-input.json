@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_9x82d7_kr5k1",
+  "page_path": "/pricing",
+  "page_query": "",
+  "user_agent_hint": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+  "timestamp_ms": 1733010123456,
+  "time_on_page_ms": 48210,
+  "avg_hesitation_time_ms": 5120,
+  "idle_hesitation_count": 3,
+  "rage_click_count": 2,
+  "scroll_reversal_count": 5,
+  "reread_section_count": 3,
+  "long_hover_count": 6,
+  "disabled_click_count": 1,
+  "noninteractive_click_count": 2,
+  "mouse_jitter_score": 38,
+  "navigation_loop_count": 1,
+  "cta_hesitation": 2,
+  "last_interaction": {
+    "tag": "button",
+    "role": null,
+    "type": "submit",
+    "disabled": false,
+    "interactive": true
+  },
+  "inferred_abandonment_context": {
+    "last_interaction_ts": 1733010119900,
+    "near_cta_before_exit": true,
+    "cta_distance_px": 42,
+    "time_on_page_ms": 48210,
+    "idle_periods": 3,
+    "disabled_clicks": 1,
+    "noninteractive_clicks": 2,
+    "scroll_reversals": 5,
+    "rage_clicks": 2
+  },
+  "session_end_reason": "beforeunload"
+}

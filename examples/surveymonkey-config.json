@@ -1,0 +1,63 @@
+{
+  "project_id": "demo-project",
+  "survey_id": "421217671",
+  "collector_id": "438510083",
+  "page_id": "72822406",
+  "questions": [
+    {
+      "question_id": "275372162",
+      "page_id": "72822406",
+      "question_text": "How satisfied was your experience?",
+      "type": "scale",
+      "scale_min": 1,
+      "scale_max": 5,
+      "choice_ids": {
+        "1": "1933075458",
+        "2": "1933075459",
+        "3": "1933075460",
+        "4": "1933075461",
+        "5": "1933075462"
+      },
+      "inferred_intent": "OVERALL_SATISFACTION"
+    },
+    {
+      "question_id": "275372168",
+      "page_id": "72822406",
+      "question_text": "How likely is it that you would recommend our website to a friend or colleague?",
+      "type": "scale",
+      "scale_min": 0,
+      "scale_max": 10,
+      "choice_ids": {
+        "0": "1933075482",
+        "1": "1933075483",
+        "2": "1933075484",
+        "3": "1933075485",
+        "4": "1933075486",
+        "5": "1933075487",
+        "6": "1933075488",
+        "7": "1933075489",
+        "8": "1933075490",
+        "9": "1933075491",
+        "10": "1933075492"
+      },
+      "row_id": "1933075481",
+      "inferred_intent": "LIKELIHOOD_TO_CONTINUE"
+    },
+    {
+      "question_id": "275372164",
+      "page_id": "72822406",
+      "question_text": "Was anything confusing?",
+      "type": "boolean",
+      "true_choice_id": "1933075471",
+      "false_choice_id": "1933075472",
+      "inferred_intent": "CONFUSION_LEVEL"
+    },
+    {
+      "question_id": "275372160",
+      "page_id": "72822406",
+      "question_text": "Do you have any other comments about how we can improve our website?",
+      "type": "text",
+      "inferred_intent": "OPEN_FEEDBACK"
+    }
+  ]
+}
