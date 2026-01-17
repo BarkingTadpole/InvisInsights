@@ -361,7 +361,7 @@ function buildPrompt(session, intents) {
     `- RECOMMENDATION (LIKELIHOOD_TO_CONTINUE / recommend intent):\n` +
     `  • Do NOT score low unless there is strong negative evidence.\n` +
     `  • If evidence is weak or mixed, default near neutral (≈0.6).\n` +
-    `  • Only score very low if frustration, rage clicks, or abandonment are strong.\n\n`
+    `  • Only score very low if frustration, rage clicks, or abandonment are strong.\n\n` +
 
       `Session data:\n` +
     `${JSON.stringify(session, null, 2)}\n\n` +
