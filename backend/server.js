@@ -31,18 +31,20 @@ const pool = new Pool({
     : false
 });
 
-await pool.query(`
-CREATE TABLE IF NOT EXISTS projects (
-  project_key TEXT PRIMARY KEY,
-  allowed_domain TEXT,
-  surveymonkey_access_token TEXT,
-  survey_id TEXT,
-  survey_config JSONB,
-  setup_complete BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-`);
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS projects (
+      project_key TEXT PRIMARY KEY,
+      allowed_domain TEXT,
+      surveymonkey_access_token TEXT,
+      survey_id TEXT,
+      survey_config JSONB,
+      setup_complete BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+}
 
 /* -------------------- HELPERS -------------------- */
 
@@ -291,4 +293,13 @@ async function fetchSurveyCollectors(id, token) {
 /* -------------------- START -------------------- */
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log('InvisInsights running on', port));
+
+app.listen(port, async () => {
+  console.log('InvisInsights running on', port);
+  try {
+    await initDb();
+    console.log('DB ready');
+  } catch (err) {
+    console.error('DB init failed', err);
+  }
+});
