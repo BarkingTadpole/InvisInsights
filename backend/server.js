@@ -1,7 +1,28 @@
-const express = require('express');
+setTimeout(() => {
+  // What is keeping the process alive?
+  const handles = process._getActiveHandles();
+  const requests = process._getActiveRequests();
 
+  console.log('[debug] active handles:', handles.map(h => h?.constructor?.name));
+  console.log('[debug] active requests:', requests.map(r => r?.constructor?.name));
+}, 2000);
+
+
+console.log('[boot] start');
+
+console.time('require express');
+const express = require('express');
+console.timeEnd('require express');
+console.log('[boot] after require express');
+
+console.time('init app');
 const app = express();
+console.timeEnd('init app');
+console.log('[boot] after app init');
+
 app.use(express.json({ limit: '200kb' }));
+
+// CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
@@ -21,6 +42,7 @@ app.use((req, res, next) => {
 
 const sessions = [];
 
+// POST /collect
 app.post('/collect', async (req, res) => {
   const session = req.body;
   if (!session || !session.session_id) {
@@ -46,6 +68,7 @@ app.post('/collect', async (req, res) => {
   return res.json({ ok: true });
 });
 
+// POST /analyze
 app.post('/analyze', async (req, res) => {
   const session = req.body;
   if (!session || !session.session_id) {
@@ -57,10 +80,11 @@ app.post('/analyze', async (req, res) => {
     const surveyMetrics = mapToSurveyMetrics(analysis);
 
     if (process.env.SURVEYMONKEY_ACCESS_TOKEN && process.env.SURVEYMONKEY_SURVEY_ID) {
-      await submitSurveyMonkeyMetrics({
+      await submitSurveyMonkeyResponse({
         session_id: session.session_id,
         survey_id: process.env.SURVEYMONKEY_SURVEY_ID,
-        metrics: surveyMetrics
+        analysis: analysis,
+        derived_metrics: surveyMetrics
       });
     }
 
@@ -104,6 +128,7 @@ function buildOpenRouterPrompt(session) {
   );
 }
 
+// Run OpenRouter analysis
 async function runOpenRouterAnalysis(session) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -113,7 +138,7 @@ async function runOpenRouterAnalysis(session) {
   const prompt = buildOpenRouterPrompt(session);
   const model = process.env.OPENROUTER_MODEL || '@preset/invisinsights';
   const referer = process.env.OPENROUTER_HTTP_REFERER || 'http://localhost';
-  const title = process.env.OPENROUTER_APP_TITLE || 'Invisible Feedback AI';
+  const title = process.env.OPENROUTER_APP_TITLE || 'InvisInsights';
   const response = await fetch(
     'https://openrouter.ai/api/v1/chat/completions',
     {
@@ -198,33 +223,103 @@ function mapToSurveyMetrics(analysis) {
   };
 }
 
-// async function submitSurveyMonkeyMetrics(payload) {
-//   const token = process.env.SURVEYMONKEY_ACCESS_TOKEN;
-//   if (!token) {
-//     return;
-//   }
+function deriveSurveyAnswers(analysis) {
+  const metrics = mapToSurveyMetrics(analysis);
+  if (!metrics) {
+    return null;
+  }
+  return {
+    csat: metrics.inferred_csat_1_to_5,
+    nps: metrics.inferred_nps_0_to_10,
+    confusion: metrics.inferred_confusion_flag,
+    improve_text: metrics.inferred_open_text || ''
+  };
+}
 
-//   const body = {
-//     survey_id: payload.survey_id,
-//     session_id: payload.session_id,
-//     custom_variables: payload.metrics
-//   };
+function parseChoiceMap(value) {
+  if (!value) {
+    return null;
+  }
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    return null;
+  }
+}
 
-//   await fetch('https://api.surveymonkey.com/v3/collectors', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//       Authorization: 'Bearer ' + token
-//     },
-//     body: JSON.stringify(body)
-//   });
-// }
+// Submit response to SurveyMonkey API
+async function submitSurveyMonkeyResponse(payload) {
+  const token = process.env.SURVEYMONKEY_ACCESS_TOKEN;
+  if (!token) {
+    return;
+  }
+
+  const collectorId = process.env.SURVEYMONKEY_COLLECTOR_ID;
+  const pageId = process.env.SURVEYMONKEY_PAGE_ID;
+  const csatQuestionId = process.env.SURVEYMONKEY_CSAT_QUESTION_ID;
+  const npsQuestionId = process.env.SURVEYMONKEY_NPS_QUESTION_ID;
+  const npsRowId = process.env.SURVEYMONKEY_NPS_ROW_ID;
+  const confusionQuestionId = process.env.SURVEYMONKEY_CONFUSION_QUESTION_ID;
+  const improveQuestionId = process.env.SURVEYMONKEY_IMPROVE_QUESTION_ID;
+  const csatChoiceMap = parseChoiceMap(process.env.SURVEYMONKEY_CSAT_CHOICE_IDS);
+  const npsChoiceMap = parseChoiceMap(process.env.SURVEYMONKEY_NPS_CHOICE_IDS);
+  const confusionYesChoiceId = process.env.SURVEYMONKEY_CONFUSION_CHOICE_ID_YES;
+  const confusionNoChoiceId = process.env.SURVEYMONKEY_CONFUSION_CHOICE_ID_NO;
+
+  if (!collectorId || !pageId || !csatQuestionId || !npsQuestionId || !npsRowId || !confusionQuestionId || !improveQuestionId) {
+    throw new Error('SurveyMonkey question/page IDs not set');
+  }
+
+  const answers = deriveSurveyAnswers(payload.analysis);
+  if (!answers) {
+    return;
+  }
+
+  const csatChoiceId = csatChoiceMap ? csatChoiceMap[String(answers.csat)] : null;
+  const npsChoiceId = npsChoiceMap ? npsChoiceMap[String(answers.nps)] : null;
+  const confusionChoiceId = answers.confusion ? confusionYesChoiceId : confusionNoChoiceId;
+
+  if (!csatChoiceId || !npsChoiceId || !confusionChoiceId) {
+    throw new Error('SurveyMonkey choice IDs not set for derived answers');
+  }
+
+  const body = {
+    response_status: 'completed',
+    pages: [
+      {
+        id: pageId,
+        questions: [
+          { id: csatQuestionId, answers: [{ choice_id: csatChoiceId }] },
+          { id: npsQuestionId, answers: [{ row_id: npsRowId, choice_id: npsChoiceId }] },
+          { id: confusionQuestionId, answers: [{ choice_id: confusionChoiceId }] },
+          { id: improveQuestionId, answers: [{ text: answers.improve_text }] }
+        ]
+      }
+    ],
+    custom_variables: {
+      inferred: 'true',
+      source: 'invisinsights',
+      session_id: payload.session_id
+    }
+  };
+
+  const response = await fetch('https://api.surveymonkey.com/v3/collectors/' + collectorId + '/responses', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + token
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error('SurveyMonkey error: ' + text);
+  }
+}
 
 module.exports = { app };
 
-if (require.main === module) {
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log('InvisInsights API listening on ' + port);
-  });
-}
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log('InvisInsights API listening on ' + port);
+});

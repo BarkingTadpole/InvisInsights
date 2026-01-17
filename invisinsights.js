@@ -14,7 +14,10 @@
     rageClickRadiusPx: 24,
     jitterAngleRad: 1.7,
     jitterMoveWindowMs: 120,
-    ctaProximityPx: 120
+    ctaProximityPx: 120,
+    enablePeriodicFlush: true,
+    flushIntervalMs: 15000,
+    enableVisibilityFlush: true
   };
 
   var config = (function () {
@@ -26,6 +29,12 @@
     Object.keys(userConfig).forEach(function (key) {
       merged[key] = userConfig[key];
     });
+    if (!userConfig.endpoint) {
+      var host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        merged.endpoint = 'http://localhost:3000/collect';
+      }
+    }
     return merged;
   })();
 
@@ -199,7 +208,6 @@
     lastInteraction: null,
     lastInteractionTs: 0,
     sendQueued: false,
-    sent: false,
     navLoopCount: 0,
     revisitPaths: [],
     lastRageTs: 0,
@@ -207,7 +215,8 @@
     lastScrollY: window.scrollY || 0,
     lastScrollDirChangeTs: 0,
     sectionVisits: new Map(),
-    recentClicks: []
+    recentClicks: [],
+    sentFinal: false
   };
 
   function markActivity(el) {
@@ -449,11 +458,13 @@
     };
   }
 
-  function sendPayload(reason) {
-    if (state.sent) {
+  function sendPayload(reason, isFinal) {
+    if (state.sentFinal && isFinal) {
       return;
     }
-    state.sent = true;
+    if (isFinal) {
+      state.sentFinal = true;
+    }
     var payload = buildPayload();
     payload.session_end_reason = reason || 'unknown';
 
@@ -483,7 +494,7 @@
 
   function scheduleSessionTimeout() {
     window.setTimeout(function () {
-      sendPayload('timeout');
+      sendPayload('timeout', true);
     }, config.sessionTimeoutMs);
   }
 
@@ -499,12 +510,28 @@
     window.addEventListener('touchstart', onTouchStart, { passive: true });
 
     window.addEventListener('beforeunload', function () {
-      sendPayload('beforeunload');
+      sendPayload('beforeunload', true);
     });
 
     window.addEventListener('pagehide', function () {
-      sendPayload('pagehide');
+      sendPayload('pagehide', true);
     });
+
+    if (config.enableVisibilityFlush) {
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          sendPayload('visibilitychange', false);
+        }
+      });
+    }
+
+    if (config.enablePeriodicFlush && config.flushIntervalMs > 0) {
+      window.setInterval(function () {
+        if (!state.sentFinal) {
+          sendPayload('interval', false);
+        }
+      }, config.flushIntervalMs);
+    }
 
     window.setInterval(onIdleCheck, 1000);
     scheduleSessionTimeout();
@@ -521,7 +548,7 @@
       return state.sessionId;
     },
     flush: function () {
-      sendPayload('manual');
+      sendPayload('manual', true);
     }
   };
 })(window, document);
