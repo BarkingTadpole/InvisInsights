@@ -15,9 +15,9 @@
     jitterAngleRad: 1.7,
     jitterMoveWindowMs: 120,
     ctaProximityPx: 120,
-    enablePeriodicFlush: true,
-    flushIntervalMs: 15000,
-    enableVisibilityFlush: true
+    projectId: null,
+    devMode: false,
+    enableAutoSetup: true
   };
 
   var config = (function () {
@@ -37,6 +37,37 @@
     }
     return merged;
   })();
+
+  function isOwnerMode() {
+    return (
+      config.devMode === true ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    );
+  }
+
+  function getProjectId() {
+    return config.projectId || window.invisinsightsProjectId || window.location.hostname;
+  }
+
+  function getApiBase() {
+    if (typeof config.endpoint !== 'string') {
+      return '';
+    }
+    if (config.endpoint.indexOf('http') !== 0) {
+      return '';
+    }
+    try {
+      return new URL(config.endpoint).origin;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function resolveApiUrl(path) {
+    var base = getApiBase();
+    return base ? base + path : path;
+  }
 
   function now() {
     return Date.now();
@@ -216,7 +247,9 @@
     lastScrollDirChangeTs: 0,
     sectionVisits: new Map(),
     recentClicks: [],
-    sentFinal: false
+    sentFinal: false,
+    projectId: getProjectId(),
+    unloading: false
   };
 
   function markActivity(el) {
@@ -426,6 +459,7 @@
     var nearCta = ctaDistance !== null && ctaDistance <= config.ctaProximityPx;
 
     return {
+      project_id: state.projectId,
       session_id: state.sessionId,
       page_path: window.location.pathname,
       page_query: window.location.search || '',
@@ -492,12 +526,6 @@
     }
   }
 
-  function scheduleSessionTimeout() {
-    window.setTimeout(function () {
-      sendPayload('timeout', true);
-    }, config.sessionTimeoutMs);
-  }
-
   function init() {
     computeNavigationLoops();
 
@@ -510,31 +538,20 @@
     window.addEventListener('touchstart', onTouchStart, { passive: true });
 
     window.addEventListener('beforeunload', function () {
+      state.unloading = true;
       sendPayload('beforeunload', true);
     });
 
     window.addEventListener('pagehide', function () {
+      state.unloading = true;
       sendPayload('pagehide', true);
     });
 
-    if (config.enableVisibilityFlush) {
-      document.addEventListener('visibilitychange', function () {
-        if (document.hidden) {
-          sendPayload('visibilitychange', false);
-        }
-      });
-    }
-
-    if (config.enablePeriodicFlush && config.flushIntervalMs > 0) {
-      window.setInterval(function () {
-        if (!state.sentFinal) {
-          sendPayload('interval', false);
-        }
-      }, config.flushIntervalMs);
-    }
-
     window.setInterval(onIdleCheck, 1000);
-    scheduleSessionTimeout();
+
+    if (config.enableAutoSetup && isOwnerMode()) {
+      checkProjectStatus();
+    }
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -547,8 +564,45 @@
     getSessionId: function () {
       return state.sessionId;
     },
+    getProjectId: function () {
+      return state.projectId;
+    },
     flush: function () {
       sendPayload('manual', true);
     }
   };
+
+  var setupTriggered = false;
+
+  function checkProjectStatus() {
+    if (setupTriggered || !state.projectId) {
+      return;
+    }
+    setupTriggered = true;
+    var url =
+      resolveApiUrl('/project-status?project_id=' + encodeURIComponent(state.projectId));
+    fetch(url, { method: 'GET', credentials: 'omit' })
+      .then(function (res) {
+        if (!res.ok) {
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || data.surveymonkey_connected) {
+          return;
+        }
+        var setupUrl = data.setup_url || '/connect-surveymonkey?project_id=' + encodeURIComponent(state.projectId);
+        if (setupUrl.indexOf('http') !== 0) {
+          setupUrl = resolveApiUrl(setupUrl);
+        }
+        var win = window.open(setupUrl, '_blank', 'noopener');
+        if (!win) {
+          window.location.href = setupUrl;
+        }
+      })
+      .catch(function () {
+        return;
+      });
+  }
 })(window, document);
