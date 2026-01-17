@@ -4,7 +4,7 @@
   }
 
   var defaultConfig = {
-    endpoint: '/collect',
+    endpoint: 'https://invisinsights.tech/collect',
     sessionTimeoutMs: 30 * 60 * 1000,
     idleThresholdMs: 3000,
     hoverThresholdMs: 800,
@@ -60,29 +60,6 @@
 
   function getProjectKey() {
     return config.projectKey || window.invisinsightsProjectKey || getScriptProjectKey();
-  }
-
-  function getSdkOrigin() {
-    try {
-      var script =
-        document.currentScript ||
-        (function () {
-          var scripts = document.getElementsByTagName('script');
-          return scripts.length ? scripts[scripts.length - 1] : null;
-        })();
-
-      var src = script && script.src ? script.src : '';
-      return src ? new URL(src).origin : '';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function resolveApiUrl(path) {
-    var origin = getSdkOrigin();
-    if (!origin) return path;
-    if (path.charAt(0) !== '/') path = '/' + path;
-    return origin + path;
   }
 
   function now() {
@@ -523,7 +500,7 @@
       return;
     }
     try {
-      fetch(resolveApiUrl('/collect'), {
+      fetch(config.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
