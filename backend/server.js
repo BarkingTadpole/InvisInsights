@@ -18,6 +18,7 @@ const FRONTEND_DIR =
 
 const app = express();
 app.use(express.json({ limit: '200kb' }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(express.static(FRONTEND_DIR));
 app.get('/', (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'index.html')));
 
