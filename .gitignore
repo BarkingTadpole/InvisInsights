@@ -1,3 +1,5 @@
-/backend
-/examples
-/invisible-feedback.js
+/node_modules/
+package.json
+package-lock.json
+/examples/
+.DS_Store
