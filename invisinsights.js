@@ -15,7 +15,7 @@
     jitterAngleRad: 1.7,
     jitterMoveWindowMs: 120,
     ctaProximityPx: 120,
-    projectId: null,
+    projectKey: null,
     devMode: false,
     enableAutoSetup: true
   };
@@ -46,8 +46,33 @@
     );
   }
 
-  function getProjectId() {
-    return config.projectId || window.invisinsightsProjectId || window.location.hostname;
+  function getScriptProjectKey() {
+    var current = document.currentScript;
+    if (current && current.getAttribute) {
+      var key = current.getAttribute('data-project-key');
+      if (key) {
+        return key;
+      }
+    }
+    var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i -= 1) {
+      var script = scripts[i];
+      if (!script || !script.getAttribute) {
+        continue;
+      }
+      var src = script.getAttribute('src') || '';
+      if (src.indexOf('invisinsights') !== -1) {
+        var attr = script.getAttribute('data-project-key');
+        if (attr) {
+          return attr;
+        }
+      }
+    }
+    return null;
+  }
+
+  function getProjectKey() {
+    return config.projectKey || window.invisinsightsProjectKey || getScriptProjectKey();
   }
 
   function getApiBase() {
@@ -248,7 +273,7 @@
     sectionVisits: new Map(),
     recentClicks: [],
     sentFinal: false,
-    projectId: getProjectId(),
+    projectKey: getProjectKey(),
     unloading: false
   };
 
@@ -459,7 +484,7 @@
     var nearCta = ctaDistance !== null && ctaDistance <= config.ctaProximityPx;
 
     return {
-      project_id: state.projectId,
+      project_id: state.projectKey,
       session_id: state.sessionId,
       page_path: window.location.pathname,
       page_query: window.location.search || '',
@@ -503,20 +528,16 @@
     payload.session_end_reason = reason || 'unknown';
 
     var body = JSON.stringify(payload);
-    if (navigator.sendBeacon) {
-      try {
-        var blob = new Blob([body], { type: 'application/json' });
-        navigator.sendBeacon(config.endpoint, blob);
-        return;
-      } catch (e) {
-        // fall through to fetch
-      }
+    if (!state.projectKey) {
+      return;
     }
-
     try {
       fetch(config.endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Invis-Project-Key': state.projectKey
+        },
         body: body,
         keepalive: true,
         credentials: 'omit'
@@ -548,24 +569,33 @@
     });
 
     window.setInterval(onIdleCheck, 1000);
+  }
 
-    if (config.enableAutoSetup && isOwnerMode()) {
-      checkProjectStatus();
+  function start() {
+    if (config.enableAutoSetup && isOwnerMode() && state.projectKey) {
+      checkProjectStatus(function (needsSetup) {
+        if (needsSetup) {
+          return;
+        }
+        init();
+      });
+      return;
     }
+    init();
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    init();
+    start();
   } else {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   }
 
   window.invisinsights = {
     getSessionId: function () {
       return state.sessionId;
     },
-    getProjectId: function () {
-      return state.projectId;
+    getProjectKey: function () {
+      return state.projectKey;
     },
     flush: function () {
       sendPayload('manual', true);
@@ -574,14 +604,21 @@
 
   var setupTriggered = false;
 
-  function checkProjectStatus() {
-    if (setupTriggered || !state.projectId) {
+  function checkProjectStatus(callback) {
+    if (setupTriggered || !state.projectKey) {
+      if (callback) {
+        callback(false);
+      }
       return;
     }
     setupTriggered = true;
     var url =
-      resolveApiUrl('/project-status?project_id=' + encodeURIComponent(state.projectId));
-    fetch(url, { method: 'GET', credentials: 'omit' })
+      resolveApiUrl('/project-status');
+    fetch(url, {
+      method: 'GET',
+      credentials: 'omit',
+      headers: { 'X-Invis-Project-Key': state.projectKey }
+    })
       .then(function (res) {
         if (!res.ok) {
           return null;
@@ -589,12 +626,22 @@
         return res.json();
       })
       .then(function (data) {
-        if (!data || data.surveymonkey_connected) {
+        if (!data) {
+          if (callback) {
+            callback(false);
+          }
           return;
         }
-        var setupUrl = data.setup_url || '/connect-surveymonkey?project_id=' + encodeURIComponent(state.projectId);
-        if (setupUrl.indexOf('http') !== 0) {
-          setupUrl = resolveApiUrl(setupUrl);
+        if (!data.needs_setup) {
+          if (callback) {
+            callback(false);
+          }
+          return;
+        }
+        var setupUrl = '/connect-surveymonkey?project_key=' + encodeURIComponent(state.projectKey);
+        setupUrl = resolveApiUrl(setupUrl);
+        if (callback) {
+          callback(true);
         }
         var win = window.open(setupUrl, '_blank', 'noopener');
         if (!win) {
@@ -602,6 +649,9 @@
         }
       })
       .catch(function () {
+        if (callback) {
+          callback(false);
+        }
         return;
       });
   }
