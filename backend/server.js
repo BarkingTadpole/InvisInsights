@@ -20,16 +20,7 @@ app.get('/', (req, res) => {
 
 /* -------------------- DB -------------------- */
 
-const pool = new Pool({
-  host: process.env.PGHOST,
-  port: Number(process.env.PGPORT || 5432),
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
-  ssl: process.env.PGSSLMODE === 'require'
-    ? { rejectUnauthorized: false }
-    : false
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
 
 async function initDb() {
   await pool.query(`
@@ -236,15 +227,15 @@ function buildPrompt(session, intents) {
 Analyze UX behavior.
 
 INTENTS:
-${intents.map(i=>'- '+i).join('\n')}
+${intents.map(i => '- ' + i).join('\n')}
 
 Session:
 ${JSON.stringify(session)}
 
 Return JSON:
 {
-  "intent_scores": { ${intents.map(i=>`"${i}":0.0`).join(',')} },
-  "confidence": { ${intents.map(i=>`"${i}":0.0`).join(',')} },
+  "intent_scores": { ${intents.map(i => `"${i}":0.0`).join(',')} },
+  "confidence": { ${intents.map(i => `"${i}":0.0`).join(',')} },
   "open_feedback": []
 }
 `;
@@ -252,15 +243,15 @@ Return JSON:
 
 async function runAI(session, intents) {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer '+process.env.OPENROUTER_API_KEY
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + process.env.OPENROUTER_API_KEY
     },
-    body:JSON.stringify({
-      model:'@preset/invisinsights',
-      messages:[{role:'user',content:buildPrompt(session,intents)}],
-      temperature:0.2
+    body: JSON.stringify({
+      model: '@preset/invisinsights',
+      messages: [{ role: 'user', content: buildPrompt(session, intents) }],
+      temperature: 0.2
     })
   });
   const j = await r.json();
@@ -270,22 +261,22 @@ async function runAI(session, intents) {
 /* -------------------- SURVEYMONKEY -------------------- */
 
 async function fetchSurveyList(token) {
-  const r = await fetch('https://api.surveymonkey.com/v3/surveys',{
-    headers:{Authorization:'Bearer '+token}
+  const r = await fetch('https://api.surveymonkey.com/v3/surveys', {
+    headers: { Authorization: 'Bearer ' + token }
   });
   return (await r.json()).data || [];
 }
 
 async function fetchSurveyDetails(id, token) {
-  const r = await fetch(`https://api.surveymonkey.com/v3/surveys/${id}/details`,{
-    headers:{Authorization:'Bearer '+token}
+  const r = await fetch(`https://api.surveymonkey.com/v3/surveys/${id}/details`, {
+    headers: { Authorization: 'Bearer ' + token }
   });
   return r.json();
 }
 
 async function fetchSurveyCollectors(id, token) {
-  const r = await fetch(`https://api.surveymonkey.com/v3/surveys/${id}/collectors`,{
-    headers:{Authorization:'Bearer '+token}
+  const r = await fetch(`https://api.surveymonkey.com/v3/surveys/${id}/collectors`, {
+    headers: { Authorization: 'Bearer ' + token }
   });
   return (await r.json()).data || [];
 }
